@@ -17,15 +17,18 @@ ARG URL=https://developer.download.nvidia.com/devzone/devcenter/mobile/jetpack_l
 ARG DEBIAN_FRONTEND=noninteractive
 
 # TODO: pciutils may be unnecessary once everything is working
+# ca-certificates ensures that we can download from the nvidia site
+# systemd is used to start the service nvidia-persistenced
 RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-utils \
     bzip2 \
+    ca-certificates \
     curl \
     pciutils \ 
+    systemd \
     sudo \
     unp 
 
-# ca-certificates ensures that we can download from the nvidia site
 # libssl and openssl come along for the ride
 RUN apt-get install -y --reinstall --no-install-recommends \
   ca-certificates 

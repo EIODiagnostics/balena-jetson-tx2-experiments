@@ -4,23 +4,22 @@ main() {
     startServices
     testCudaInstallation
 
+    echo "Use control-c to quit this script"
     while true; do
         sleep 60
     done
 }
 
 startServices() {
+    echo "\nAttempting to start tomcat8 and nvidia-persistenced"
     systemctl start tomcat8
-    systemctl status tomcat8
     systemctl start nvidia-persistenced
+    echo "\nGetting status of services tomcat8 and nvidia-persistenced"
+    systemctl status tomcat8
     systemctl status nvidia-persistenced
 }
 
 testCudaInstallation() {
-    my_name=$(basename -- "$0")
-    echo "Running Server: ${my_name}" 
-    # Server  Running Server: runServer.bash
-
     echo "PATH = ${PATH}"
     # PATH = /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/cuda/bin
 
