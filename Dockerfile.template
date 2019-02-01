@@ -67,6 +67,7 @@ ENV PATH="${PATH}:/usr/local/cuda/bin"
 # switch on systemd init system in container -- requires "privileged: true" in docker-compose.yml
 ENV INITSYSTEM on
 
+# packages that we want to use at runtime, but you may not want
 RUN apt-get update && apt-get install -y --no-install-recommends \
     maven \
     python \

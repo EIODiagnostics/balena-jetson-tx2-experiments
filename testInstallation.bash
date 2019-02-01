@@ -1,6 +1,7 @@
 #!/bin/bash
 
 main() {
+    isInitsystemOn
     startServices
     testCudaInstallation
 
@@ -10,11 +11,28 @@ main() {
     done
 }
 
+isInitsystemOn() {
+    if [ -z ${INITSYSTEM+x} ]; then 
+        echo "Error: INITSYSTEM is unset"
+    elif [ "$INITSYSTEM" = "on" ]; then
+        echo "SUCCESS: INITSYSTEM is on"
+    else
+        echo "Error: INITSYSTEM is [${INITSYSTEM}]"
+    fi
+}
+
 startServices() {
-    echo "\nAttempting to start tomcat8 and nvidia-persistenced"
+    echo "Attempting to start tomcat8 and nvidia-persistenced:"
     systemctl start tomcat8
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: unable to start tomcat8"
+    fi
     systemctl start nvidia-persistenced
-    echo "\nGetting status of services tomcat8 and nvidia-persistenced"
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: unable to start nvidia-persistenced"
+    fi
+
+    echo "Getting status of services tomcat8 and nvidia-persistenced:"
     systemctl status tomcat8
     systemctl status nvidia-persistenced
 }
@@ -50,12 +68,20 @@ testCudaInstallation() {
 
     /usr/src/app/hello-world
     # Hello World!
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: hello-world.cu exited with an error. Is nvidia-persistenced running?"
+    fi
+
 
     deviceQuerySrc="/usr/local/cuda/samples/1_Utilities/deviceQuery"
     if [ -d "$deviceQuerySrc" ]; then
         pushd "$deviceQuerySrc"
         make
         ../../bin/aarch64/linux/release/deviceQuery
+        if [[ $? -ne 0 ]]; then
+            echo "ERROR: deviceQuery exited with an error. Is nvidia-persistenced running?"
+        fi
+
         popd
 
         #     ../../bin/aarch64/linux/release/deviceQuery Starting...
