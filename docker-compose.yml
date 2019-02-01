@@ -1,0 +1,7 @@
+version: '2'
+services:
+  Server:
+    build: ./Server
+    expose:
+      - "8080"
+    privileged: true
