@@ -1,0 +1,88 @@
+# START FROM: https://github.com/open-horizon/cogwerx-jetson-tx2
+# see also https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html
+# FROM aarch64/ubuntu
+# FROM arm64v8/ubuntu:xenial-20180123
+FROM balenalib/jetson-tx2-debian-openjdk:8-jdk-stretch-build-20181207
+# FROM balenalib/jetson-tx2-debian-openjdk:8-jre-stretch-run-20181207
+
+#AUTHOR bmwshop@gmail.com
+MAINTAINER nuculur@gmail.com
+# MODIFIED jason@eiodiagnostics.com
+
+# This is the base container for the Jetson TX2 board with drivers (with cuda)
+# base URL for NVIDIA libs
+ARG URL=https://developer.download.nvidia.com/devzone/devcenter/mobile/jetpack_l4t/3.2.1/m8u2ki/JetPackL4T_321_b23
+
+# Update packages, install some useful packages
+ARG DEBIAN_FRONTEND=noninteractive
+
+# TODO: pciutils may be unnecessary once everything is working
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    apt-utils \
+    bzip2 \
+    curl \
+    pciutils \ 
+    sudo \
+    unp 
+
+# ca-certificates ensures that we can download from the nvidia site
+# libssl and openssl come along for the ride
+RUN apt-get install -y --reinstall --no-install-recommends \
+  ca-certificates 
+  
+WORKDIR /tmp
+
+# Install drivers first
+RUN curl --silent --verbose --location http://developer.nvidia.com/embedded/dlc/l4t-jetson-tx2-driver-package-28-2 | tar xvfj -
+RUN chown root /etc/passwd /etc/sudoers /usr/lib/sudo/sudoers.so /etc/sudoers.d/README
+RUN /tmp/Linux_for_Tegra/apply_binaries.sh -r / && rm -fr /tmp/*
+
+# Pull the rest of the jetpack libs for cuda/cudnn and install
+RUN curl $URL/cuda-repo-l4t-9-0-local_9.0.252-1_arm64.deb -so cuda-repo-l4t_arm64.deb
+RUN curl $URL/libcudnn7_7.0.5.15-1+cuda9.0_arm64.deb -so /tmp/libcudnn_arm64.deb
+RUN curl $URL/libcudnn7-dev_7.0.5.15-1+cuda9.0_arm64.deb -so /tmp/libcudnn-dev_arm64.deb
+
+# Install libs: L4T, CUDA, cuDNN
+RUN dpkg -i /tmp/cuda-repo-l4t_arm64.deb
+RUN apt-key add /var/cuda-repo-9-0-local/7fa2af80.pub
+RUN apt-get update && apt-get install -y cuda-toolkit-9.0
+RUN dpkg -i /tmp/libcudnn_arm64.deb
+RUN dpkg -i /tmp/libcudnn-dev_arm64.deb
+ENV LD_LIBRARY_PATH="/usr/lib/aarch64-linux-gnu/tegra{LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+
+# Re-link libs in /usr/lib/tegra
+RUN ln -s /usr/lib/aarch64-linux-gnu/tegra/libnvidia-ptxjitcompiler.so.28.2.0 /usr/lib/aarch64-linux-gnu/tegra/libnvidia-ptxjitcompiler.so
+RUN ln -s /usr/lib/aarch64-linux-gnu/tegra/libnvidia-ptxjitcompiler.so.28.2.0 /usr/lib/aarch64-linux-gnu/tegra/libnvidia-ptxjitcompiler.so.1
+RUN ln -sf /usr/lib/aarch64-linux-gnu/tegra/libGL.so /usr/lib/aarch64-linux-gnu/libGL.so
+
+# D.R. – need to do this for some strange reason (for jetson tx2)
+RUN ln -s /usr/lib/aarch64-linux-gnu/libcuda.so /usr/lib/aarch64-linux-gnu/libcuda.so.1
+# END FROM: https://github.com/open-horizon/cogwerx-jetson-tx2
+
+ENV PATH="${PATH}:/usr/local/cuda/bin"
+
+# switch on systemd init system in container -- requires "privileged: true" in docker-compose.yml
+ENV INITSYSTEM on
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    maven \
+    python \
+    ruby \
+    ssh \
+    tomcat8 \
+    tomcat8-admin
+
+# Tomcat warns that we need to define default locale
+RUN mkdir -p /etc/default \
+    && echo "LANG=en_CA.UTF-8" > /etc/default/locale
+
+WORKDIR /usr/src/app
+COPY . ./
+
+# three step clone ensures that changes to the jetsonUtility repository are "manually"
+# brought over and the change will invalidate the docker cache
+RUN git clone https://github.com/EIODiagnostics/jetsonUtilities \
+    && cd jetsonUtilities \
+    && git checkout 42f3613199b5184461a9830daef96b6c09a7adfd
+
+CMD ["/usr/src/app/testInstallation.bash"]
