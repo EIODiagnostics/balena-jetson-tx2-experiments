@@ -56,8 +56,8 @@ RUN set -ex; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
         openjdk-8-jdk \
-        ca-certificates-java="$CA_CERTIFICATES_JAVA_VERSION" 
-    
+        ca-certificates-java="$CA_CERTIFICATES_JAVA_VERSION" \
+        ; \
 # verify that "docker-java-home" returns what we expect
     [ "$(readlink -f "$JAVA_HOME")" = "$(docker-java-home)" ]; \
     \
