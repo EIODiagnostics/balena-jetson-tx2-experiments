@@ -162,6 +162,7 @@ RUN mkdir -p /etc/default \
 
 # packages that we want to use at runtime, but you may not want
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
     maven \
     python \
     ruby \
