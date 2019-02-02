@@ -88,9 +88,8 @@ ENV PATH="${PATH}:/usr/local/cuda/bin"
 
 
 ####################################################################
-# START SNIPPET FROM; https://github.com/balena-io-library/base-images/blob/master/balena-base-images/openjdk/jetson-tx2/ubuntu/xenial/8-jdk/build/Dockerfile
-# MODIFICATIONS: commented out "rm -rf /var/lib/apt/lists/*;""
-####################################################################
+# START SNIPPET FROM; https://github.com/balena-io-library/base-images/blob/master/balena-base-images/openjdk/jetson-tx2/debian/stretch/8-jdk/build/Dockerfile
+# MODIFICATIONS: removed "rm -rf /var/lib/apt/lists/*;""
 # A few reasons for installing distribution-provided OpenJDK:
 #
 #  1. Oracle.  Licensing prevents us from redistributing the official JDK.
@@ -99,7 +98,13 @@ ENV PATH="${PATH}:/usr/local/cuda/bin"
 #     really hairy.
 #
 #     For some sample build times, see Debian's buildd logs:
-#       https://buildd.debian.org/status/logs.php?pkg=openjdk-7
+#       https://buildd.debian.org/status/logs.php?pkg=openjdk-8
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        bzip2 \
+        unzip \
+        xz-utils \
+    && rm -rf /var/lib/apt/lists/*
 
 # Default to UTF-8 file.encoding
 ENV LANG C.UTF-8
@@ -118,6 +123,10 @@ RUN { \
 RUN ln -svT "/usr/lib/jvm/java-8-openjdk-$(dpkg --print-architecture)" /docker-java-home
 ENV JAVA_HOME /docker-java-home
 
+# see https://bugs.debian.org/775775
+# and https://github.com/docker-library/java/issues/19#issuecomment-70546872
+ENV CA_CERTIFICATES_JAVA_VERSION 20170531+nmu1
+
 RUN set -ex; \
     \
 # deal with slim variants not having man page directories (which causes "update-alternatives" to fail)
@@ -127,15 +136,9 @@ RUN set -ex; \
     \
     apt-get update; \
     apt-get install -y --no-install-recommends \
-        software-properties-common \
-    ; \
-    add-apt-repository ppa:openjdk-r/ppa; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends \
         openjdk-8-jdk \
-    ; # \
-    #rm -rf /var/lib/apt/lists/*; \
-    #\
+        ca-certificates-java="$CA_CERTIFICATES_JAVA_VERSION" \
+    
 # verify that "docker-java-home" returns what we expect
     [ "$(readlink -f "$JAVA_HOME")" = "$(docker-java-home)" ]; \
     \
@@ -143,8 +146,12 @@ RUN set -ex; \
     update-alternatives --get-selections | awk -v home="$(readlink -f "$JAVA_HOME")" 'index($3, home) == 1 { $2 = "manual"; print | "update-alternatives --set-selections" }'; \
 # ... and verify that it actually worked for one of the alternatives we care about
     update-alternatives --query java | grep -q 'Status: manual'
+
+# see CA_CERTIFICATES_JAVA_VERSION notes above
+RUN /var/lib/dpkg/info/ca-certificates-java.postinst configure
+
 ####################################################################
-# END SNIPPET FROM: https://github.com/balena-io-library/base-images/blob/master/balena-base-images/openjdk/jetson-tx2/ubuntu/xenial/8-jdk/build/Dockerfile
+# END SNIPPET FROM: https://github.com/balena-io-library/base-images/blob/master/balena-base-images/openjdk/jetson-tx2/debian/stretch/8-jdk/build/Dockerfile
 ####################################################################
 
 # switch on systemd init system in container -- requires "privileged: true" in docker-compose.yml
