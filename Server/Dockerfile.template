@@ -1,5 +1,5 @@
 # https://github.com/eiodiagnostics/balena-jetson-tx2-experiments
-FROM resin/jetson-tx2-debian:stretch-build
+FROM resin/jetson-tx2-debian:stretch
 LABEL Description="This image is used create a privileged container for Nvidia Jetson TX2 using BalenaOS" 
 LABEL Vendor="EIO Diagnostics" 
 LABEL Version="1.0"
