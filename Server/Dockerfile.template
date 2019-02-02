@@ -64,9 +64,6 @@ RUN ln -s /usr/lib/aarch64-linux-gnu/libcuda.so /usr/lib/aarch64-linux-gnu/libcu
 
 ENV PATH="${PATH}:/usr/local/cuda/bin"
 
-# switch on systemd init system in container -- requires "privileged: true" in docker-compose.yml
-ENV INITSYSTEM on
-
 # packages that we want to use at runtime, but you may not want
 RUN apt-get update && apt-get install -y --no-install-recommends \
     maven \
@@ -75,6 +72,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ssh \
     tomcat8 \
     tomcat8-admin
+
+
+# switch on systemd init system in container -- requires "privileged: true" in docker-compose.yml
+ENV INITSYSTEM on
 
 # Tomcat warns that we need to define default locale
 RUN mkdir -p /etc/default \
