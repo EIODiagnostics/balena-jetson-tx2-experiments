@@ -1,4 +1,13 @@
 # balena-jetson-tx2-experiments
+
+Successful Experimental Branch: resin-jetson-tx2-debian-with-explicit-openjdk8
+
+* This branch has a working systemd in the Server container.
+* This branch has a working cuda driver in the Server container.
+* This branch is based on resin-jetson-tx2-debian
+* This branch contains a snippet from https://github.com/balena-io-library/base-images/blob/master/balena-base-images/openjdk/jetson-tx2/debian/stretch/8-jdk/build/Dockerfile
+* This branch contains a snippet from https://github.com/open-horizon/cogwerx-jetson-tx2/Dockerfile.cudabase
+
 Experiments building balena containers for Nvidia Jetson TX2
 
 Each attempt is on a different branch.
