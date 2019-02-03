@@ -1,4 +1,10 @@
 # balena-jetson-tx2-experiments
+
+Failed Experimental Branch: balenalib-jetson-tx2-debian-openjdk8-jdk-stretch-build-20181207
+
+* This branch does not have a working systemd in the Server containers. 
+* This branch does not have working cuda driver in the Server container.
+
 Experiments building balena containers for Nvidia Jetson TX2
 
 Each attempt is on a different branch.
