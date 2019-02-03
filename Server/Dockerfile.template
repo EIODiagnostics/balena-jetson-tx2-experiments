@@ -1,13 +1,100 @@
-# START FROM: https://github.com/open-horizon/cogwerx-jetson-tx2
+# https://github.com/eiodiagnostics/balena-jetson-tx2-experiments
+FROM resin/jetson-tx2-debian:stretch
+LABEL Description="This image is used create a privileged container for Nvidia Jetson TX2 using BalenaOS" 
+LABEL Vendor="EIO Diagnostics" 
+LABEL Version="1.0"
+
+LABEL Author="jason@eiodiagnostics.com"
+
+####################################################################
+# START SNIPPET FROM; https://github.com/balena-io-library/base-images/blob/master/balena-base-images/openjdk/jetson-tx2/debian/stretch/8-jdk/build/Dockerfile
+# MODIFICATIONS: removed "rm -rf /var/lib/apt/lists/*
+# 
+# A few reasons for installing distribution-provided OpenJDK:
+#
+#  1. Oracle.  Licensing prevents us from redistributing the official JDK.
+#
+#  2. Compiling OpenJDK also requires the JDK to be installed, and it gets
+#     really hairy.
+#
+#     For some sample build times, see Debian's buildd logs:
+#       https://buildd.debian.org/status/logs.php?pkg=openjdk-8
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        bzip2 \
+        unzip \
+        xz-utils 
+
+# Default to UTF-8 file.encoding
+ENV LANG C.UTF-8
+
+# add a simple script that can auto-detect the appropriate JAVA_HOME value
+# based on whether the JDK or only the JRE is installed
+RUN { \
+        echo '#!/bin/sh'; \
+        echo 'set -e'; \
+        echo; \
+        echo 'dirname "$(dirname "$(readlink -f "$(which javac || which java)")")"'; \
+    } > /usr/local/bin/docker-java-home \
+    && chmod +x /usr/local/bin/docker-java-home
+
+# do some fancy footwork to create a JAVA_HOME that's cross-architecture-safe
+RUN ln -svT "/usr/lib/jvm/java-8-openjdk-$(dpkg --print-architecture)" /docker-java-home
+ENV JAVA_HOME /docker-java-home
+
+# see https://bugs.debian.org/775775
+# and https://github.com/docker-library/java/issues/19#issuecomment-70546872
+ENV CA_CERTIFICATES_JAVA_VERSION 20170531+nmu1
+
+RUN set -ex; \
+    \
+# deal with slim variants not having man page directories (which causes "update-alternatives" to fail)
+    if [ ! -d /usr/share/man/man1 ]; then \
+        mkdir -p /usr/share/man/man1; \
+    fi; \
+    \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        openjdk-8-jdk \
+        ca-certificates-java="$CA_CERTIFICATES_JAVA_VERSION" \
+        ; \
+# verify that "docker-java-home" returns what we expect
+    [ "$(readlink -f "$JAVA_HOME")" = "$(docker-java-home)" ]; \
+    \
+# update-alternatives so that future installs of other OpenJDK versions don't change /usr/bin/java
+    update-alternatives --get-selections | awk -v home="$(readlink -f "$JAVA_HOME")" 'index($3, home) == 1 { $2 = "manual"; print | "update-alternatives --set-selections" }'; \
+# ... and verify that it actually worked for one of the alternatives we care about
+    update-alternatives --query java | grep -q 'Status: manual'
+
+# see CA_CERTIFICATES_JAVA_VERSION notes above
+RUN /var/lib/dpkg/info/ca-certificates-java.postinst configure
+
+####################################################################
+# END SNIPPET FROM: https://github.com/balena-io-library/base-images/blob/master/balena-base-images/openjdk/jetson-tx2/debian/stretch/8-jdk/build/Dockerfile
+####################################################################
+
+####################################################################
+# START SNIPPET FROM: https://github.com/open-horizon/cogwerx-jetson-tx2/Dockerfile.cudabase
+# MODIFICATIONS: 
+# - commented out MAINTAINER nuculur@gmail.com
+# - removed 
+#   ## Clean up (don't remove cuda libs... used by child containers)
+#   RUN apt-get -y autoremove && apt-get -y autoclean
+#   RUN rm -rf /var/cache/apt
+####################################################################
 # see also https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html
 # FROM aarch64/ubuntu
 # FROM arm64v8/ubuntu:xenial-20180123
-FROM balenalib/jetson-tx2-debian-openjdk:8-jdk-stretch-build-20181207
+# fails to run systemd:
+# FROM balenalib/jetson-tx2-debian-openjdk:8-jdk-stretch-build-20181207
 # FROM balenalib/jetson-tx2-debian-openjdk:8-jre-stretch-run-20181207
+# fails to run systemd:
+# FROM balenalib/jetson-tx2-ubuntu-openjdk:8-jdk-xenial-build-20181207
+# FROM balenalib/jetson-tx2-ubuntu-openjdk:8-jre-xenial-run-20181207
 
-#AUTHOR bmwshop@gmail.com
-MAINTAINER nuculur@gmail.com
-# MODIFIED jason@eiodiagnostics.com
+# https://github.com/open-horizon/cogwerx-jetson-tx2
+# AUTHOR bmwshop@gmail.com
+# MAINTAINER nuculur@gmail.com
 
 # This is the base container for the Jetson TX2 board with drivers (with cuda)
 # base URL for NVIDIA libs
@@ -60,19 +147,11 @@ RUN ln -sf /usr/lib/aarch64-linux-gnu/tegra/libGL.so /usr/lib/aarch64-linux-gnu/
 
 # D.R. – need to do this for some strange reason (for jetson tx2)
 RUN ln -s /usr/lib/aarch64-linux-gnu/libcuda.so /usr/lib/aarch64-linux-gnu/libcuda.so.1
-# END FROM: https://github.com/open-horizon/cogwerx-jetson-tx2
+####################################################################
+# END SNIPPET FROM: https://github.com/open-horizon/cogwerx-jetson-tx2
+####################################################################
 
 ENV PATH="${PATH}:/usr/local/cuda/bin"
-
-# packages that we want to use at runtime, but you may not want
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    maven \
-    python \
-    ruby \
-    ssh \
-    tomcat8 \
-    tomcat8-admin
-
 
 # switch on systemd init system in container -- requires "privileged: true" in docker-compose.yml
 ENV INITSYSTEM on
@@ -80,6 +159,16 @@ ENV INITSYSTEM on
 # Tomcat warns that we need to define default locale
 RUN mkdir -p /etc/default \
     && echo "LANG=en_CA.UTF-8" > /etc/default/locale
+
+# packages that we want to use at runtime, but you may not want
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    maven \
+    python \
+    ruby \
+    ssh \
+    tomcat8 \
+    tomcat8-admin
 
 WORKDIR /usr/src/app
 COPY . ./
