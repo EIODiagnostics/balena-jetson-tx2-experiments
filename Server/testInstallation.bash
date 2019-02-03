@@ -4,6 +4,7 @@ main() {
     isInitsystemOn
     startServices
     testCudaInstallation
+    testJavaInstallation
 
     echo "Use control-c to quit this script"
     while true; do
@@ -35,6 +36,35 @@ startServices() {
     echo "Getting status of services tomcat8 and nvidia-persistenced:"
     systemctl status tomcat8
     systemctl status nvidia-persistenced
+
+    ps aewwx | grep tomcat8 | grep -v grep
+    # note that PID and time will change
+    # 302 ?        Sl     0:58 /usr/lib/jvm/java-8-openjdk-
+    # arm64/bin/java -Djava.util.logging.config.file=/var/lib/tomcat8/
+    # conf/logging.properties -Djava.util.logging.manager=org.apache.j
+    # uli.ClassLoaderLogManager -Djava.awt.headless=true
+    # -XX:+UseConcMarkSweepGC -Djdk.tls.ephemeralDHKeySize=2048
+    # -Djava.protocol.handler.pkgs=org.apache.catalina.webresources
+    # -classpath
+    # /usr/share/tomcat8/bin/bootstrap.jar:/usr/share/tomcat8/bin
+    # /tomcat-juli.jar -Dcatalina.base=/var/lib/tomcat8
+    # -Dcatalina.home=/usr/share/tomcat8
+    # -Djava.io.tmpdir=/tmp/tomcat8-tomcat8-tmp
+    # org.apache.catalina.startup.Bootstrap start SHLVL=1
+    # OLDPWD=/tmp/tomcat8-tomcat8-tmp HOME=/var/lib/tomcat8
+    # TOMCAT8_GROUP=tomcat8 TOMCAT8_USER=tomcat8
+    # CATALINA_HOME=/usr/share/tomcat8
+    # CATALINA_PID=/var/run/tomcat8.pid JSSE_HOME=/usr/lib/jvm/java-8
+    # -openjdk-arm64/jre/ JOURNAL_STREAM=8:368136
+    # _=/usr/share/tomcat8/bin/catalina.sh
+    # CATALINA_TMPDIR=/tmp/tomcat8-tomcat8-tmp
+    # PATH=/bin:/usr/bin:/sbin:/usr/sbin
+    # INVOCATION_ID=ce2ef30662214e67b630969f9a6b9e12
+    # JAVA_OPTS=-Djava.awt.headless=true -XX:+UseConcMarkSweepGC
+    # -Djdk.tls.ephemeralDHKeySize=2048
+    # -Djava.protocol.handler.pkgs=org.apache.catalina.webresources
+    # LANG=en_CA.UTF-8 JAVA_HOME=/usr/lib/jvm/java-8-openjdk-arm64
+    # PWD=/var/lib/tomcat8 CATALINA_BASE=/var/lib/tomcat8
 }
 
 testCudaInstallation() {
@@ -130,7 +160,16 @@ testCudaInstallation() {
     fi
 }
 
-
+testJavaInstallation() {
+    echo "Java Version:"
+    java -version
+    # openjdk version "1.8.0_181"
+    # OpenJDK Runtime Environment (build 1.8.0_181-8u181-b13-2~deb9u1-b13)
+    # OpenJDK 64-Bit Server VM (build 25.181-b13, mixed mode)
+    echo "Java Compiler Version:"
+    javac -version
+    # javac 1.8.0_181
+}
 
 # call the main function now that everything has been parsed
 main "$@"
